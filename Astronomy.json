@@ -1,0 +1,11 @@
+{
+  "event": "WUastronomy_hook",
+  "url": "http://api.wunderground.com/api/025342ad62cfbf96/astronomy/q/MN/Minneapolis.json",
+  "requestType": "POST",
+  "headers": null,
+  "query": null,
+  "responseTemplate": "{{#moon_phase}}{{percentIlluminated}}~{{ageOfMoon}}~{{sunset.hour}}~{{sunset.minute}}~{{sunrise.hour}}~{{sunrise.minute}}~{{moonset.hour}}~{{moonset.minute}}~{{moonrise.hour}}~{{moonrise.minute}}~{{/moon_phase}}",
+  "json": null,
+  "auth": null,
+  "mydevices": true
+}
