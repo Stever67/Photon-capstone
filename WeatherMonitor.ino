@@ -1,21 +1,23 @@
 // This #include statement was automatically added by the Particle IDE.
 #include "lib1.h"
+//#include <TimerOne.h>
 
 const int button1Pin = D1;  // pushbutton 1 pin
 const int button2Pin = D0;  // pushbutton 2 pin
-//const int ledPin =  D4;    // LED1 pin
-//const int ledPin2 =  D5;    // LED2 pin
-
 const int RED_PIN =  D2;    // LED1 pin
 const int GREEN_PIN =  D3;    // LED2 pin
 const int BLUE_PIN =  D4;    // LED2 pin
 
-int buttonval = 0;
+const int BuzzerPin = D5;  // Piezo
+
+int m_hightemp = 0;
+int m_maxwind = 0;
+int m_pop = 0;
+bool weatherGood = true;
+bool weatherAlert = false;
 
 void setup() {
-    // For simplicity, we'll format our weather data as text, and pipe it to serial.
-    // but you could just as easily display it in a webpage or pass the data to another system.
-
+    
     // Learn more about the serial commands at https://docs.particle.io/reference/firmware/photon/#serial
     //  for the Photon, or https://docs.particle.io/reference/firmware/core/#serial for the Core
     // You can also watch what's sent over serial with the particle cli with
@@ -27,258 +29,370 @@ void setup() {
     pinMode(RED_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
     pinMode(BLUE_PIN, OUTPUT);
-    
-    // Set up the LED pin to be an output:
-    //pinMode(ledPin, OUTPUT);
-    //pinMode(ledPin2, OUTPUT);  
-    
-    // Lets listen for the hook response
+    pinMode(BuzzerPin, OUTPUT);
+
+    //Publish weatherAlert variable for use with IFTTT   
+    Particle.variable("weatherAlert", weatherAlert);
+    // Subscribing to hook responses...
     //Particle.subscribe("hook-response/get_weather", gotWeatherData, MY_DEVICES);
-    Particle.subscribe("hook-response/WU_get_conditions", gotWeatherData, MY_DEVICES);
-    Particle.subscribe("hook-response/WU_get_forecast", gotWeatherforecastData, MY_DEVICES);
+    //Particle.subscribe("hook-response/WU_get_forecast", gotWeatherforecastData, MY_DEVICES);
+    Particle.subscribe("hook-response/WUconditions_hook", gotWeatherData, MY_DEVICES);
+    Particle.subscribe("hook-response/WU4dayforecast_hook", gotWeatherforecastData, MY_DEVICES);
+    Particle.subscribe("hook-response/WUastronomy_hook", gotWeatherAstronomyData, MY_DEVICES);
+    Particle.subscribe("hook-response/WUalerts_hook", gotWeatherAlertsData, MY_DEVICES);
+    
     Serial.println("starting...");
-    // Lets give ourselves 10 seconds before we actually start the program.
-    // That will just give us a chance to open the serial monitor before the program sends the request
-    //for(int i=0;i<10;i++) {
-    //    Serial.println("waiting " + String(10-i) + " seconds before we publish");
-    //    delay(1000);
-    //}
-    //digitalWrite(ledPin, HIGH);
-    //digitalWrite(ledPin2, HIGH);
-    delay(10000);  // Turn on LEDs for 10 seconds...
-    //digitalWrite(ledPin, LOW);
-    //digitalWrite(ledPin2, LOW);
+    // Lets give ourselves 7 seconds before we actually start the program.
+    digitalWrite(RED_PIN, HIGH);
+    digitalWrite(GREEN_PIN, HIGH);
+    digitalWrite(BLUE_PIN, HIGH);
+    
+    delay(7000);  // Turn on LEDs for 7 seconds...
+    TurnOffRGBLED();
+        
 }
 
 
 // called forever really fast
 void loop() {
 
-   
-    //----------------------------------------------------------------------
     int button1State, button2State;  // variables to hold the pushbutton states
     
     button1State = digitalRead(button1Pin);
     button2State = digitalRead(button2Pin);
-    /*if (button1State == LOW)
-  {
-    digitalWrite(ledPin, HIGH);  // turn the LED on
-    digitalWrite(ledPin2, LOW);  // turn the LED off
-    digitalWrite(ledOnboard, HIGH);
-    Serial.println("LED On");// and wait 5 minutes before doing 12 again
-    delay(1000);
-  }
-  else if (button2State == LOW)
-  {
-    digitalWrite(ledPin2, HIGH);  // turn the LED on
-    digitalWrite(ledPin, LOW);  // turn the LED off
-    digitalWrite(ledOnboard, LOW);
-    Serial.println("LED Off");
-    delay(1000);
-  }
-  else
-  {
-    digitalWrite(ledPin, LOW);  // turn the LED off
-    digitalWrite(ledPin2, LOW);  // turn the LED off
-    digitalWrite(ledOnboard, LOW);
-    Serial.println("LED Off");
-    delay(1000);
-  }*/
-   if (button1State == LOW)
+  
+    // ----------------- Weather alert! -----------------------------
+    if (weatherAlert == true)
     {
-        buttonval = 1;
-        
-        // Let's request the weather, but no more than once every 60 seconds.
-        Serial.println("Requesting WU Weather!");
-    
-        // publish the event that will trigger our Webhook
-        //Particle.publish("get_weather");
-        Particle.publish("WU_get_conditions");
-        //digitalWrite(ledPin, HIGH);
-        //digitalWrite(ledPin2, LOW);
-        //digitalWrite(RED_PIN, HIGH);
-        //digitalWrite(GREEN_PIN, LOW);
-        //digitalWrite(BLUE_PIN, LOW);
-        
+        // Do this until a button is not pressed...
+        delay(500);
+        TurnOffRGBLED();  // blink the LED red  
+        //noTone(BuzzerPin);  // sequence the piezo
+        delay(500);
+        //tone(BuzzerPin, 262, 150);
+        //tone(BuzzerPin, 262);  // sequence the piezo
         digitalWrite(RED_PIN, HIGH);
         digitalWrite(GREEN_PIN, LOW);
         digitalWrite(BLUE_PIN, LOW);
-        delay(10000);
-        digitalWrite(RED_PIN, LOW);
-        digitalWrite(GREEN_PIN, LOW);
-        digitalWrite(BLUE_PIN, LOW);
+        
+    }
+    // ---------------------------------------------------------------
+    
+    if (button1State == LOW)
+    {
+        //buttonval = 1;
+        weatherAlert = false;
+        
+        delay(1000);
+        button1State = digitalRead(button1Pin);  // Read this value again...
+        if (button1State == LOW)  // button state is still low (long press), so publish an alternate webhook
+        {
+            Serial.println("blue button - long press");
+            // publish the event that will trigger our Webhook
+            Particle.publish("WUalerts_hook");
+            digitalWrite(RED_PIN, LOW);
+            digitalWrite(GREEN_PIN, LOW);
+            digitalWrite(BLUE_PIN, HIGH);
+            delay(1400);
+        }
+        else
+        {
+            Serial.println("blue button - short press");
+            // publish the event that will trigger our Webhook
+            Particle.publish("WUconditions_hook");
+            digitalWrite(RED_PIN, LOW);
+            digitalWrite(GREEN_PIN, LOW);
+            digitalWrite(BLUE_PIN, HIGH);
+            delay(700);
+        }
+        TurnOffRGBLED();
     }
     else if (button2State == LOW)
     {
-       buttonval = 2;
-       // Let's request the weather, but no more than once every 60 seconds.
-       Serial.println("Requesting WU Weather!");
-
-        // publish the event that will trigger our Webhook
-        //Particle.publish("get_weather");
-        Particle.publish("WU_get_forecast");
-        //digitalWrite(ledPin, LOW);
-        //digitalWrite(ledPin2, HIGH);
-        //digitalWrite(RED_PIN, LOW);
-        //digitalWrite(GREEN_PIN, HIGH);
-        //digitalWrite(BLUE_PIN, LOW);
-        
-        digitalWrite(RED_PIN, LOW);
-        digitalWrite(GREEN_PIN, HIGH);
-        digitalWrite(BLUE_PIN, LOW);
-        delay(10000);
-        digitalWrite(RED_PIN, LOW);
-        digitalWrite(GREEN_PIN, LOW);
-        digitalWrite(BLUE_PIN, LOW);
-    }
-    else
-    {
-        //Serial.println("Requesting WU Weather!");
-        //Particle.publish("WU_get_conditions");
-        //digitalWrite(RED_PIN, LOW);
-        //digitalWrite(GREEN_PIN, LOW);
-        //digitalWrite(BLUE_PIN, HIGH);
-        //delay(10000);    
-        
+       //buttonval = 2;
+       weatherAlert = false;
+       
+        delay(1000);
+        button2State = digitalRead(button2Pin);  // Read this value again...
+        if (button2State == LOW)  // button state is still low (long press), so publish an alternate webhook
+        {
+            Serial.println("yellow button - long press");
+            // publish the event that will trigger our Webhook
+            Particle.publish("WUastronomy_hook");
+            digitalWrite(RED_PIN, HIGH);
+            digitalWrite(GREEN_PIN, HIGH);
+            digitalWrite(BLUE_PIN, LOW);
+            delay(1400);
+        }
+        else
+        {
+            Serial.println("yellow button - short press");
+            // publish the event that will trigger our Webhook
+            Particle.publish("WU4dayforecast_hook");
+            digitalWrite(RED_PIN, HIGH);
+            digitalWrite(GREEN_PIN, HIGH);
+            digitalWrite(BLUE_PIN, LOW);
+            delay(7000);
+        }
+        TurnOffRGBLED();
     }
     
-    //----------------------------------------------------------------------
-        
+    
 }
 
-// This function will get called when weather data comes in
+// This function will get called when WUconditions_hook event is published
 void gotWeatherData(const char *name, const char *data) {
-    // Important note!  -- Right now the response comes in 512 byte chunks.
-    //  This code assumes we're getting the response in large chunks, and this
-    //  assumption breaks down if a line happens to be split across response chunks.
-    //
-    // Sample data:
-    //  <location>Minneapolis, Minneapolis-St. Paul International Airport, MN</location>
-    //  <weather>Overcast</weather>
-    //  <temperature_string>26.0 F (-3.3 C)</temperature_string>
-    //  <temp_f>26.0</temp_f>
-
-
     String str = String(data);
-    //Serial.println(str);
-    String locationStr = tryExtractString(str, "<location>", "</location>");
-    String weatherStr = tryExtractString(str, "<weather>", "</weather>");
-    String tempStr = tryExtractString(str, "<temp_f>", "</temp_f>");
-    String windStr = tryExtractString(str, "<wind_string>", "</wind_string>");
+    //Serial.println(data);
     
-    String pressureStr = tryExtractString(str, "<pressure_string>", "</pressure_string>");
-    String dewpointStr = tryExtractString(str, "<dewpoint_f>", "</dewpoint_f>");
-    String windchillStr = tryExtractString(str, "<windchill_string>", "</windchill_string>");
-    String visibilityStr = tryExtractString(str, "<visibility_mi>", "</visibility_mi>");
-    String fctStr = tryExtractString(str, "<fcttext>", "</fcttext>");
+    char strBuffer[125] = "";
+    str.toCharArray(strBuffer, 125);
+    char weather[100];
+    char humidity[100];
+    char Winddir[100];
     
-    if (buttonval == 1)  // conditions
-    {
-        if (locationStr != NULL) {
-        Serial.println("At location: " + locationStr);
-        }
+    strcpy (weather, strtok(strBuffer, "\"~"));
+    float temp_f = atof(strtok(NULL, "~"));
+    strcpy (humidity, strtok(NULL, "~"));
+    strcpy (Winddir, strtok(NULL, "~"));
+    float windmph = atof(strtok(NULL, "~"));
+    float pressure = atof(strtok(NULL, "~"));
+    int dewpoint_f = atoi(strtok(NULL, "~"));
     
-        if (weatherStr != NULL) {
-            Serial.println("The weather is: " + weatherStr);
-        }
-
-        if (tempStr != NULL) {
-            Serial.println("The temp is: " + tempStr + String(" *F"));
-        }
+    bool weatherGood = true;
+    Serial.println("current weather...");
+    Serial.println("-------------------------");
+    Serial.print("weather: ");
+    Serial.println(weather);
+    Serial.print("temp: ");
+    Serial.println(temp_f);
+    Serial.print("humidity: ");
+    Serial.println(humidity);
+    Serial.print("wind dir.: ");
+    Serial.println(Winddir);
+    Serial.print("wind mph: ");
+    Serial.println(windmph);
+    Serial.print("pressure: ");
+    Serial.println(pressure);
+    Serial.print("dewpoint: ");
+    Serial.println(dewpoint_f);
+    Serial.println("");
     
-        if (windStr != NULL) {
-            Serial.println("The wind is: " + windStr);
-        }    
-        
-    }
-    else if (buttonval == 2)  // forecast
-    {
-        if (pressureStr != NULL) {
-        Serial.println("The pressure is: " + pressureStr);
-        }
-    
-        if (dewpointStr != NULL) {
-            Serial.println("The dewpoint is: " + dewpointStr);
-        }
-
-        if (windchillStr != NULL) {
-            Serial.println("The windchill is: " + windchillStr);
-        }
-    
-        if (visibilityStr != NULL) {
-            Serial.println("The visibility is: " + visibilityStr);
-        }
-        if (fctStr != NULL) {
-            Serial.println("The forecast is: " + visibilityStr);
-        }
-        
-    }
 }
 
-// This function will get called when weather data comes in
+// This function will get called when WU4dayforecast_hook event is published
 void gotWeatherforecastData(const char *name, const char *data) {
     // Important note!  -- Right now the response comes in 512 byte chunks.
     //  This code assumes we're getting the response in large chunks, and this
     //  assumption breaks down if a line happens to be split across response chunks.
-    //
-    // Sample data:
-    //  <location>Minneapolis, Minneapolis-St. Paul International Airport, MN</location>
-    //  <weather>Overcast</weather>
-    //  <temperature_string>26.0 F (-3.3 C)</temperature_string>
-    //  <temp_f>26.0</temp_f>
-
-
     String str = String(data);
-    Serial.println(str);
-    String locationStr = tryExtractString(str, "<location>", "</location>");
-    String weatherStr = tryExtractString(str, "<weather>", "</weather>");
-    String tempStr = tryExtractString(str, "<temp_f>", "</temp_f>");
-    String windStr = tryExtractString(str, "<wind_string>", "</wind_string>");
     
-    String pressureStr = tryExtractString(str, "<pressure_string>", "</pressure_string>");
-    String dewpointStr = tryExtractString(str, "<dewpoint_f>", "</dewpoint_f>");
-    String windchillStr = tryExtractString(str, "<windchill_string>", "</windchill_string>");
-    String visibilityStr = tryExtractString(str, "<visibility_mi>", "</visibility_mi>");
+    char dayofweek1[100];
+    char dayofweek2[100];
+    char dayofweek3[100];
+    char dayofweek4[100];
+    char strBuffer[125] = "";
+    str.toCharArray(strBuffer, 125);
+    strcpy (dayofweek1, strtok(strBuffer, "\"~"));
+    int highday1 = atoi(strtok(NULL, "~"));
+    int lowday1 = atoi(strtok(NULL, "~"));
+    int windday1 = atoi(strtok(NULL, "~"));
+    int pop1 = atoi(strtok(NULL, "~"));
+    /*float qpfday1 = atof(strtok(NULL, "~"));
+    if (qpfday1 == NULL)
+        strcpy (dayofweek2, strtok(strBuffer, "~~"));
+    else
+        strcpy (dayofweek2, strtok(strBuffer, "~"));
+    */
+    strcpy (dayofweek2, strtok(NULL, "~"));
+    int highday2 = atoi(strtok(NULL, "~"));
+    int lowday2 = atoi(strtok(NULL, "~"));
+    int windday2 = atoi(strtok(NULL, "~"));
+    //int qpfday2 = atof(strtok(NULL, "~"));
+    int pop2 = atoi(strtok(NULL, "~"));
     
-    if (buttonval == 1)
-    {
-        if (locationStr != NULL) {
-        Serial.println("At location: " + locationStr);
-        }
+    strcpy (dayofweek3, strtok(NULL, "~"));
+    int highday3 = atoi(strtok(NULL, "~"));
+    int lowday3 = atoi(strtok(NULL, "~"));
+    int windday3 = atoi(strtok(NULL, "~"));
+    //int qpfday3 = atof(strtok(NULL, "~"));
+    int pop3 = atoi(strtok(NULL, "~"));
     
-        if (weatherStr != NULL) {
-            Serial.println("The weather is: " + weatherStr);
-        }
-
-        if (tempStr != NULL) {
-            Serial.println("The temp is: " + tempStr + String(" *F"));
-        }
+    strcpy (dayofweek4, strtok(NULL, "~"));
+    int highday4 = atoi(strtok(NULL, "~"));
+    int lowday4 = atoi(strtok(NULL, "~"));
+    int windday4 = atoi(strtok(NULL, "~"));
+    //int qpfday4 = atof(strtok(NULL, "~"));
+    int pop4 = atoi(strtok(NULL, "~"));
     
-        if (windStr != NULL) {
-            Serial.println("The wind is: " + windStr);
-        }    
-        
-    }
-    else if (buttonval == 2)
-    {
-        if (pressureStr != NULL) {
-        Serial.println("The pressure is: " + pressureStr);
-        }
     
-        if (dewpointStr != NULL) {
-            Serial.println("The dewpoint is: " + dewpointStr);
-        }
-
-        if (windchillStr != NULL) {
-            Serial.println("The windchill is: " + windchillStr);
-        }
+    // set global variables...
+    m_hightemp = highday1;
+    m_maxwind = windday1;
+    m_pop = pop1;
+    setLEDIndicator();
     
-        if (visibilityStr != NULL) {
-            Serial.println("The visibility is: " + visibilityStr);
-        }
-        
-    }
+    Serial.println("4-day weather forecast...");
+    Serial.println("-------------------------");
+    Serial.println(dayofweek1);
+    Serial.print("high temp: ");
+    Serial.println(highday1);
+    Serial.print("low temp: ");
+    Serial.println(lowday1);
+    Serial.print("max wind: ");
+    Serial.println(windday1);
+    Serial.print("pop: ");
+    Serial.println(pop1);
+    Serial.println("");
+    
+    Serial.println(dayofweek2);
+    Serial.print("high temp: ");
+    Serial.println(highday2);
+    Serial.print("low temp: ");
+    Serial.println(lowday2);
+    Serial.print("max wind: ");
+    Serial.println(windday2);
+    Serial.print("pop: ");
+    Serial.println(pop2);
+    Serial.println("");
+    
+    Serial.println(dayofweek3);
+    Serial.print("high temp: ");
+    Serial.println(highday3);
+    Serial.print("low temp: ");
+    Serial.println(lowday3);
+    Serial.print("max wind.: ");
+    Serial.println(windday3);
+    Serial.print("pop: ");
+    Serial.println(pop3);
+    Serial.println("");
+    
+    Serial.println(dayofweek4);
+    Serial.print("high temp: ");
+    Serial.println(highday4);
+    Serial.print("low temp: ");
+    Serial.println(lowday4);
+    Serial.print("max wind.: ");
+    Serial.println(windday4);
+    Serial.print("pop: ");
+    Serial.println(pop4);
+    Serial.println("");
+    
+    // Set LED to indicate fine or poor weather for biking to work
+    setLEDIndicator();
 }
+
+// This function will get called when WUastronomy_hook event is published
+void gotWeatherAstronomyData(const char *name, const char *data) {
+    String str = String(data);
+    char strBuffer[125] = "";
+    str.toCharArray(strBuffer, 125); 
+
+    int strPercentIlluminated = atoi(strtok(strBuffer, "~"));
+    int strAgeOfMoon = atoi(strtok(NULL, "~"));
+    int strSunsetHour = atoi(strtok(NULL, "~"));
+    int strSunsetMinute = atoi(strtok(NULL, "~"));
+    int strSunriseHour = atoi(strtok(NULL, "~"));
+    int strSunriseMinute = atoi(strtok(NULL, "~"));
+    int strMoonsetHour = atoi(strtok(NULL, "~"));
+    int strMoonsetMinute = atoi(strtok(NULL, "~"));
+    int strMoonriseHour = atoi(strtok(NULL, "~"));
+    int strMoonriseMinute = atoi(strtok(NULL, "~"));
+
+    bool weatherGood = true;
+    Serial.println("current astronomy...");
+    Serial.println("-------------------------");
+    Serial.print("Moon illumination: ");
+    Serial.print(strPercentIlluminated);
+    Serial.println("%");
+    Serial.print("age of moon: ");
+    Serial.println(strAgeOfMoon);
+    Serial.print("Sunset: ");
+    Serial.print(strSunsetHour);
+    Serial.print(":");
+    Serial.println(strSunsetMinute);
+    Serial.print("Sunrise: ");
+    Serial.print(strSunriseHour);
+    Serial.print(":");
+    Serial.println(strSunriseMinute);
+    Serial.print("Moonset: ");
+    Serial.print(strMoonsetHour);
+    Serial.print(":");
+    Serial.println(strMoonsetMinute);
+    Serial.print("Moonrise: ");
+    Serial.print(strMoonriseHour);
+    Serial.print(":");
+    Serial.println(strMoonriseMinute);
+    Serial.println("");
+    
+    
+}
+
+// This function will get called when WUalerts_hook event is published
+void gotWeatherAlertsData(const char *name, const char *data) {
+    String str = String(data);
+    
+    String alertStr = tryExtractString(str, "<alerts>", "</alerts>");
+    
+    if (alertStr != "")
+    {
+        alertStr = "Tornado warning";
+        Serial.println("Alert!... " + alertStr);  // I'm hard-coding this to simulate a warning (for demo purposes only)
+        
+        if (alertStr.trim().length() > 0)
+            weatherAlert = true;
+        else
+            weatherAlert = false;
+            
+    }
+    else
+    {
+        Serial.println("There are no current alerts... " + alertStr);
+        weatherAlert = false;
+    }
+    
+}
+
+// At-a-glance indication of how nice the current day is (e.g. for biking to work)
+void setLEDIndicator()
+{
+    weatherGood = true;
+    if (m_hightemp < 50)
+        weatherGood = false;
+    else if (m_maxwind > 19)
+        weatherGood = false;
+    else if (m_pop > 39)
+        weatherGood = false;
+    
+    if (weatherGood == true)
+    {
+        // Display green (for "fair") for 7 seconds
+        digitalWrite(RED_PIN, LOW);
+        digitalWrite(GREEN_PIN, HIGH);
+        digitalWrite(BLUE_PIN, LOW);
+        delay(7000);
+        TurnOffRGBLED();
+    }
+    else
+    {
+        // Display red (for "poor") for 7 seconds
+        digitalWrite(RED_PIN, HIGH);
+        digitalWrite(GREEN_PIN, LOW);
+        digitalWrite(BLUE_PIN, LOW);
+        delay(7000);
+        TurnOffRGBLED();
+    }
+    
+}
+
+void TurnOffRGBLED()
+{
+    digitalWrite(RED_PIN, LOW);
+    digitalWrite(GREEN_PIN, LOW);
+    digitalWrite(BLUE_PIN, LOW);
+    
+}
+
 // Returns any text found between a start and end string inside 'str'
 // example: startfooend  -> returns foo
 String tryExtractString(String str, const char* start, const char* end) {
