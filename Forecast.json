@@ -1,0 +1,11 @@
+{
+  "event": "WU4dayforecast_hook",
+  "url": "http://api.wunderground.com/api/025342ad62cfbf96/forecast/q/MN/Minneapolis.json",
+  "requestType": "POST",
+  "headers": null,
+  "query": null,
+  "responseTemplate": "{{#forecast}}{{#simpleforecast}}{{#forecastday}}{{date.weekday}}~{{high.fahrenheit}}~{{low.fahrenheit}}~{{maxwind.mph}}~{{pop}}~{{/forecastday}}{{/simpleforecast}}{{/forecast}}",
+  "json": null,
+  "auth": null,
+  "mydevices": true
+}

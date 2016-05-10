@@ -1,0 +1,11 @@
+{
+  "event": "WUconditions_hook",
+  "url": "http://api.wunderground.com/api/025342ad62cfbf96/conditions/q/MN/Minneapolis.json",
+  "requestType": "POST",
+  "headers": null,
+  "query": null,
+  "responseTemplate": "{{current_observation.weather}}~{{current_observation.temp_f}}~{{current_observation.relative_humidity}}~{{current_observation.wind_dir}}~{{current_observation.wind_mph}}~{{current_observation.pressure_in}}~{{current_observation.dewpoint_string}}",
+  "json": null,
+  "auth": null,
+  "mydevices": true
+}
