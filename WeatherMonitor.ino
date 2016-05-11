@@ -1,5 +1,3 @@
-// This #include statement was automatically added by the Particle IDE.
-#include "lib1.h"
 //#include <TimerOne.h>
 
 const int button1Pin = D1;  // pushbutton 1 pin
@@ -7,6 +5,9 @@ const int button2Pin = D0;  // pushbutton 2 pin
 const int RED_PIN =  D2;    // LED1 pin
 const int GREEN_PIN =  D3;    // LED2 pin
 const int BLUE_PIN =  D4;    // LED2 pin
+//const int RED_PIN2 =  A2;    // LED1 pin
+//const int GREEN_PIN2 =  A3;    // LED2 pin
+//const int BLUE_PIN2 =  A4;    // LED2 pin
 
 const int BuzzerPin = D5;  // Piezo
 
@@ -29,6 +30,10 @@ void setup() {
     pinMode(RED_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
     pinMode(BLUE_PIN, OUTPUT);
+    //pinMode(RED_PIN2, OUTPUT);
+    //pinMode(GREEN_PIN2, OUTPUT);
+    //pinMode(BLUE_PIN2, OUTPUT);
+    
     pinMode(BuzzerPin, OUTPUT);
 
     //Publish weatherAlert variable for use with IFTTT   
@@ -46,6 +51,9 @@ void setup() {
     digitalWrite(RED_PIN, HIGH);
     digitalWrite(GREEN_PIN, HIGH);
     digitalWrite(BLUE_PIN, HIGH);
+    //analogWrite(RED_PIN2, 255);
+    //analogWrite(GREEN_PIN2, 255);
+    //analogWrite(BLUE_PIN2, 255);
     
     delay(7000);  // Turn on LEDs for 7 seconds...
     TurnOffRGBLED();
@@ -64,7 +72,7 @@ void loop() {
     // ----------------- Weather alert! -----------------------------
     if (weatherAlert == true)
     {
-        // Do this until a button is not pressed...
+        // Do this while a button is not pressed...
         delay(500);
         TurnOffRGBLED();  // blink the LED red  
         //noTone(BuzzerPin);  // sequence the piezo
@@ -74,17 +82,18 @@ void loop() {
         digitalWrite(RED_PIN, HIGH);
         digitalWrite(GREEN_PIN, LOW);
         digitalWrite(BLUE_PIN, LOW);
-        
+        //analogWrite(RED_PIN2, 255);
+        //analogWrite(GREEN_PIN2, 0);
+        //analogWrite(BLUE_PIN2, 0);
     }
     // ---------------------------------------------------------------
     
     if (button1State == LOW)
     {
-        //buttonval = 1;
         weatherAlert = false;
         
         delay(1000);
-        button1State = digitalRead(button1Pin);  // Read this value again...
+        button1State = digitalRead(button1Pin);  // Read this value again to test for a long press...
         if (button1State == LOW)  // button state is still low (long press), so publish an alternate webhook
         {
             Serial.println("blue button - long press");
@@ -93,7 +102,10 @@ void loop() {
             digitalWrite(RED_PIN, LOW);
             digitalWrite(GREEN_PIN, LOW);
             digitalWrite(BLUE_PIN, HIGH);
-            delay(1400);
+            //analogWrite(RED_PIN2, 0);
+            //analogWrite(GREEN_PIN2, 0);
+            //analogWrite(BLUE_PIN2, 255);
+            delay(500);
         }
         else
         {
@@ -103,17 +115,19 @@ void loop() {
             digitalWrite(RED_PIN, LOW);
             digitalWrite(GREEN_PIN, LOW);
             digitalWrite(BLUE_PIN, HIGH);
-            delay(700);
+            //analogWrite(RED_PIN2, 0);
+            //analogWrite(GREEN_PIN2, 0);
+            //analogWrite(BLUE_PIN2, 255);
+            delay(500);
         }
         TurnOffRGBLED();
     }
     else if (button2State == LOW)
     {
-       //buttonval = 2;
        weatherAlert = false;
        
         delay(1000);
-        button2State = digitalRead(button2Pin);  // Read this value again...
+        button2State = digitalRead(button2Pin);  // Read this value again to test for a long press...
         if (button2State == LOW)  // button state is still low (long press), so publish an alternate webhook
         {
             Serial.println("yellow button - long press");
@@ -122,7 +136,7 @@ void loop() {
             digitalWrite(RED_PIN, HIGH);
             digitalWrite(GREEN_PIN, HIGH);
             digitalWrite(BLUE_PIN, LOW);
-            delay(1400);
+            delay(500);
         }
         else
         {
@@ -132,7 +146,7 @@ void loop() {
             digitalWrite(RED_PIN, HIGH);
             digitalWrite(GREEN_PIN, HIGH);
             digitalWrite(BLUE_PIN, LOW);
-            delay(7000);
+            delay(500);
         }
         TurnOffRGBLED();
     }
@@ -164,18 +178,20 @@ void gotWeatherData(const char *name, const char *data) {
     Serial.println("-------------------------");
     Serial.print("weather: ");
     Serial.println(weather);
-    Serial.print("temp: ");
+    Serial.print("temperature: ");
     Serial.println(temp_f);
     Serial.print("humidity: ");
     Serial.println(humidity);
     Serial.print("wind dir.: ");
     Serial.println(Winddir);
-    Serial.print("wind mph: ");
+    Serial.print("wind in mph: ");
     Serial.println(windmph);
     Serial.print("pressure: ");
-    Serial.println(pressure);
+    Serial.print(pressure);
+    Serial.println(" in.");
     Serial.print("dewpoint: ");
-    Serial.println(dewpoint_f);
+    Serial.print(dewpoint_f);
+    Serial.println("F");
     Serial.println("");
     
 }
@@ -230,7 +246,6 @@ void gotWeatherforecastData(const char *name, const char *data) {
     m_hightemp = highday1;
     m_maxwind = windday1;
     m_pop = pop1;
-    setLEDIndicator();
     
     Serial.println("4-day weather forecast...");
     Serial.println("-------------------------");
@@ -241,7 +256,7 @@ void gotWeatherforecastData(const char *name, const char *data) {
     Serial.println(lowday1);
     Serial.print("max wind: ");
     Serial.println(windday1);
-    Serial.print("pop: ");
+    Serial.print("probability of precip: ");
     Serial.println(pop1);
     Serial.println("");
     
@@ -252,7 +267,7 @@ void gotWeatherforecastData(const char *name, const char *data) {
     Serial.println(lowday2);
     Serial.print("max wind: ");
     Serial.println(windday2);
-    Serial.print("pop: ");
+    Serial.print("probability of precip: ");
     Serial.println(pop2);
     Serial.println("");
     
@@ -263,7 +278,7 @@ void gotWeatherforecastData(const char *name, const char *data) {
     Serial.println(lowday3);
     Serial.print("max wind.: ");
     Serial.println(windday3);
-    Serial.print("pop: ");
+    Serial.print("probability of precip: ");
     Serial.println(pop3);
     Serial.println("");
     
@@ -274,7 +289,7 @@ void gotWeatherforecastData(const char *name, const char *data) {
     Serial.println(lowday4);
     Serial.print("max wind.: ");
     Serial.println(windday4);
-    Serial.print("pop: ");
+    Serial.print("probability of precip: ");
     Serial.println(pop4);
     Serial.println("");
     
@@ -299,14 +314,14 @@ void gotWeatherAstronomyData(const char *name, const char *data) {
     int strMoonriseHour = atoi(strtok(NULL, "~"));
     int strMoonriseMinute = atoi(strtok(NULL, "~"));
 
-    bool weatherGood = true;
     Serial.println("current astronomy...");
     Serial.println("-------------------------");
     Serial.print("Moon illumination: ");
     Serial.print(strPercentIlluminated);
     Serial.println("%");
     Serial.print("age of moon: ");
-    Serial.println(strAgeOfMoon);
+    Serial.print(strAgeOfMoon);
+    Serial.println(" days");
     Serial.print("Sunset: ");
     Serial.print(strSunsetHour);
     Serial.print(":");
@@ -332,6 +347,8 @@ void gotWeatherAstronomyData(const char *name, const char *data) {
 void gotWeatherAlertsData(const char *name, const char *data) {
     String str = String(data);
     
+    Serial.println("Weather alerts...");
+    Serial.println("-------------------------");
     String alertStr = tryExtractString(str, "<alerts>", "</alerts>");
     
     if (alertStr != "")
@@ -350,6 +367,7 @@ void gotWeatherAlertsData(const char *name, const char *data) {
         Serial.println("There are no current alerts... " + alertStr);
         weatherAlert = false;
     }
+    Serial.println("");
     
 }
 
@@ -367,21 +385,36 @@ void setLEDIndicator()
     if (weatherGood == true)
     {
         // Display green (for "fair") for 7 seconds
-        digitalWrite(RED_PIN, LOW);
-        digitalWrite(GREEN_PIN, HIGH);
-        digitalWrite(BLUE_PIN, LOW);
-        delay(7000);
-        TurnOffRGBLED();
+        for (int i = 0; i < 7; i++)
+        {
+            digitalWrite(RED_PIN, LOW);
+            digitalWrite(GREEN_PIN, HIGH);
+            digitalWrite(BLUE_PIN, LOW);
+            //analogWrite(RED_PIN2, 0);
+            //analogWrite(GREEN_PIN2, 255);
+            //analogWrite(BLUE_PIN2, 0);
+            delay(900);
+            TurnOffRGBLED();
+            delay(100);
+        }
     }
     else
     {
         // Display red (for "poor") for 7 seconds
-        digitalWrite(RED_PIN, HIGH);
-        digitalWrite(GREEN_PIN, LOW);
-        digitalWrite(BLUE_PIN, LOW);
-        delay(7000);
-        TurnOffRGBLED();
+        for (int i = 0; i < 7; i++)
+        {
+            digitalWrite(RED_PIN, HIGH);
+            digitalWrite(GREEN_PIN, LOW);
+            digitalWrite(BLUE_PIN, LOW);
+            //analogWrite(RED_PIN2, 255);
+            //analogWrite(GREEN_PIN2, 0);
+            //analogWrite(BLUE_PIN2, 0);
+            delay(900);
+            TurnOffRGBLED();
+            delay(100);
+        }
     }
+    TurnOffRGBLED();
     
 }
 
